@@ -1,4 +1,5 @@
 --only-binary=reportlab
+python-multipart
 fastapi==0.95.1
 uvicorn==0.22.0
 pdfplumber==0.7.6

@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Summarizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --background: #f9fafb;
+            --text: #1f2937;
+            --secondary-text: #6b7280;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--primary-dark);
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--secondary-text);
+        }
+
+        .upload-section {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .drag-area {
+            border: 2px dashed var(--border);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .drag-area.active {
+            border-color: var(--primary);
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .drag-area .icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .drag-area h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .drag-area p {
+            color: var(--secondary-text);
+            margin-bottom: 1rem;
+        }
+
+        .drag-area .browse {
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .drag-area .selected-file {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background-color: #f3f4f6;
+            border-radius: 0.25rem;
+        }
+
+        .drag-area .selected-file .file-name {
+            margin-left: 0.5rem;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .drag-area .selected-file .remove-file {
+            margin-left: 0.5rem;
+            color: var(--error);
+            cursor: pointer;
+        }
+
+        .options-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .option-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid var(--border);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .output-format {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .output-option {
+            flex: 1;
+            min-width: 150px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .output-option.active {
+            border-color: var(--primary);
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .output-option i {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .output-option h4 {
+            margin-bottom: 0.25rem;
+        }
+
+        .output-option p {
+            font-size: 0.875rem;
+            color: var(--secondary-text);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        button:disabled {
+            background-color: var(--border);
+            color: var(--secondary-text);
+            cursor: not-allowed;
+        }
+
+        .submit-section {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .results-section {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-stats {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+            background-color: #f3f4f6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            flex: 1;
+            text-align: center;
+        }
+
+        .stat-item .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-item .stat-label {
+            font-size: 0.875rem;
+            color: var(--secondary-text);
+        }
+
+        .summary-content {
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .summary-content strong {
+            color: var(--primary-dark);
+        }
+
+        .download-section {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.375rem;
+            color: white;
+            font-weight: 500;
+            max-width: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            transform: translateX(calc(100% + 1rem));
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background-color: var(--success);
+        }
+
+        .notification.error {
+            background-color: var(--error);
+        }
+
+        .notification.warning {
+            background-color: var(--warning);
+        }
+
+        .notification i {
+            margin-right: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .output-option {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PDF Summarizer</h1>
+            <p class="tagline">Transform lengthy PDFs into concise, meaningful summaries</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="drag-area" id="dragArea">
+                <i class="fas fa-file-pdf icon"></i>
+                <h3>Drag & Drop your PDF file</h3>
+                <p>or</p>
+                <span class="browse">Browse Files</span>
+                <input type="file" id="fileInput" accept=".pdf" hidden>
+                <div class="selected-file" id="selectedFile" style="display: none;">
+                    <i class="fas fa-file-pdf"></i>
+                    <span class="file-name" id="fileName"></span>
+                    <i class="fas fa-times remove-file" id="removeFile"></i>
+                </div>
+            </div>
+
+            <div class="options-section">
+                <div class="option-group">
+                    <label for="maxLength">Maximum Length (words):</label>
+                    <input type="number" id="maxLength" value="500" min="100" max="2000">
+                </div>
+
+                <div class="option-group">
+                    <label for="focusAreas">Focus Areas (optional):</label>
+                    <input type="text" id="focusAreas" placeholder="E.g., financial data, recommendations, key findings">
+                </div>
+
+                <div class="option-group">
+                    <label>Output Format:</label>
+                    <div class="output-format">
+                        <div class="output-option active" data-format="text" id="textOption">
+                            <i class="fas fa-align-left"></i>
+                            <h4>Text Summary</h4>
+                            <p>View results directly in browser</p>
+                        </div>
+                        <div class="output-option" data-format="pdf" id="pdfOption">
+                            <i class="fas fa-file-pdf"></i>
+                            <h4>PDF Summary</h4>
+                            <p>Download as PDF document</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="submit-section">
+                <button id="summarizeBtn" disabled>
+                    <i class="fas fa-bolt"></i>
+                    Summarize PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p>Summarizing your document...</p>
+            <p class="sub-text">This may take a moment for large documents</p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2>Summary Results</h2>
+                <button id="newSummaryBtn">
+                    <i class="fas fa-plus"></i>
+                    New Summary
+                </button>
+            </div>
+
+            <div class="results-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="pageCount">0</div>
+                    <div class="stat-label">Pages Analyzed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="wordCount">0</div>
+                    <div class="stat-label">Words in Summary</div>
+                </div>
+            </div>
+
+            <div class="summary-content" id="summaryContent">
+                <!-- Summary will be inserted here -->
+            </div>
+
+            <div class="download-section">
+                <button id="downloadBtn">
+                    <i class="fas fa-download"></i>
+                    Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">Operation completed successfully</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // API endpoint - change this to your actual API URL
+            const API_URL = 'http://localhost:8001';
+            
+            // Elements
+            const dragArea = document.getElementById('dragArea');
+            const fileInput = document.getElementById('fileInput');
+            const selectedFile = document.getElementById('selectedFile');
+            const fileName = document.getElementById('fileName');
+            const removeFile = document.getElementById('removeFile');
+            const summarizeBtn = document.getElementById('summarizeBtn');
+            const maxLength = document.getElementById('maxLength');
+            const focusAreas = document.getElementById('focusAreas');
+            const textOption = document.getElementById('textOption');
+            const pdfOption = document.getElementById('pdfOption');
+            const loader = document.getElementById('loader');
+            const resultsSection = document.getElementById('resultsSection');
+            const pageCount = document.getElementById('pageCount');
+            const wordCount = document.getElementById('wordCount');
+            const summaryContent = document.getElementById('summaryContent');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const newSummaryBtn = document.getElementById('newSummaryBtn');
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notificationText');
+
+            // State variables
+            let file = null;
+            let outputFormat = 'text';
+            let summaryData = null;
+
+            // Event listeners for file upload
+            fileInput.addEventListener('change', handleFileSelect);
+            dragArea.addEventListener('click', () => fileInput.click());
+            removeFile.addEventListener('click', handleRemoveFile);
+
+            // Drag and drop events
+            ['dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dragArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            dragArea.addEventListener('dragover', function() {
+                dragArea.classList.add('active');
+            });
+
+            dragArea.addEventListener('dragleave', function() {
+                dragArea.classList.remove('active');
+            });
+
+            dragArea.addEventListener('drop', function(e) {
+                dragArea.classList.remove('active');
+                const droppedFile = e.dataTransfer.files[0];
+                if (droppedFile && droppedFile.type === 'application/pdf') {
+                    handleFileAdd(droppedFile);
+                } else {
+                    showNotification('Please select a PDF file.', 'error');
+                }
+            });
+
+            // Output format selection
+            textOption.addEventListener('click', function() {
+                textOption.classList.add('active');
+                pdfOption.classList.remove('active');
+                outputFormat = 'text';
+            });
+
+            pdfOption.addEventListener('click', function() {
+                pdfOption.classList.add('active');
+                textOption.classList.remove('active');
+                outputFormat = 'pdf';
+            });
+
+            // Summarize button
+            summarizeBtn.addEventListener('click', handleSummarize);
+
+            // Download button
+            downloadBtn.addEventListener('click', handleDownload);
+
+            // New summary button
+            newSummaryBtn.addEventListener('click', function() {
+                resetUI();
+            });
+
+            // Function to handle file selection
+            function handleFileSelect(e) {
+                const selectedFile = e.target.files[0];
+                if (selectedFile && selectedFile.type === 'application/pdf') {
+                    handleFileAdd(selectedFile);
+                } else {
+                    showNotification('Please select a PDF file.', 'error');
+                }
+            }
+
+            // Function to add file to UI
+            function handleFileAdd(selectedFile) {
+                file = selectedFile;
+                fileName.textContent = file.name;
+                document.getElementById('selectedFile').style.display = 'flex';
+                summarizeBtn.disabled = false;
+            }
+
+            // Function to remove file
+            function handleRemoveFile(e) {
+                e.stopPropagation();
+                file = null;
+                fileInput.value = '';
+                selectedFile.style.display = 'none';
+                summarizeBtn.disabled = true;
+            }
+
+            // Function to handle summarization
+            async function handleSummarize() {
+                if (!file) {
+                    showNotification('Please select a PDF file.', 'error');
+                    return;
+                }
+
+                if (maxLength.value < 100 || maxLength.value > 2000) {
+                    showNotification('Max length must be between 100 and 2000 words.', 'warning');
+                    return;
+                }
+
+                showLoader();
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('max_length', maxLength.value);
+                
+                if (focusAreas.value.trim()) {
+                    formData.append('focus_areas', focusAreas.value.trim());
+                }
+
+                try {
+                    let endpoint = '';
+                    let response = null;
+
+                    if (outputFormat === 'text') {
+                        endpoint = `${API_URL}/summarize`;
+                        response = await fetch(endpoint, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to summarize document');
+                        }
+
+                        summaryData = await response.json();
+                        displayTextResults(summaryData);
+                    } else if (outputFormat === 'pdf') {
+                        endpoint = `${API_URL}/summarize-to-pdf`;
+                        response = await fetch(endpoint, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to generate PDF summary');
+                        }
+
+                        // Handle PDF response
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'summary.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+
+                        // Since we don't have the statistics for PDF download, we'll make another call
+                        // to get the text summary data for display purposes
+                        const statsResponse = await fetch(`${API_URL}/summarize`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (statsResponse.ok) {
+                            summaryData = await statsResponse.json();
+                            displayTextResults(summaryData);
+                        }
+                    }
+
+                    showNotification('Summary generated successfully!', 'success');
+                } catch (error) {
+                    console.error('Error:', error);
+                    hideLoader();
+                    showNotification('Error generating summary. Please try again.', 'error');
+                }
+            }
+
+            // Function to display text results
+            function displayTextResults(data) {
+                pageCount.textContent = data.page_count;
+                wordCount.textContent = data.word_count;
+                
+                // Use marked.js to render markdown
+                summaryContent.innerHTML = marked.parse(data.summary);
+                
+                hideLoader();
+                resultsSection.style.display = 'block';
+            }
+
+            // Function to handle PDF download
+            function handleDownload() {
+                if (!summaryData) {
+                    showNotification('No summary available to download.', 'warning');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('max_length', maxLength.value);
+                
+                if (focusAreas.value.trim()) {
+                    formData.append('focus_areas', focusAreas.value.trim());
+                }
+
+                fetch(`${API_URL}/summarize-to-pdf`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to generate PDF summary');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'summary.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showNotification('PDF downloaded successfully!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error downloading PDF. Please try again.', 'error');
+                });
+            }
+
+            // Function to show loader
+            function showLoader() {
+                loader.style.display = 'block';
+                summarizeBtn.disabled = true;
+            }
+
+            // Function to hide loader
+            function hideLoader() {
+                loader.style.display = 'none';
+            }
+
+            // Function to reset UI
+            function resetUI() {
+                file = null;
+                fileInput.value = '';
+                selectedFile.style.display = 'none';
+                summarizeBtn.disabled = true;
+                resultsSection.style.display = 'none';
+                summaryContent.innerHTML = '';
+                summaryData = null;
+            }
+
+            // Function to show notification
+            function showNotification(message, type) {
+                notification.className = 'notification';
+                notification.classList.add(type);
+                notificationText.textContent = message;
+                
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            // Check API health on load
+            fetch(`${API_URL}/health`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.groq_api_configured) {
+                        showNotification('API key not configured. Some features may not work.', 'warning');
+                    }
+                })
+                .catch(error => {
+                    console.error('API Health Check Error:', error);
+                    showNotification('Cannot connect to API. Please check server status.', 'error');
+                });
+        });
+    </script>
+</body>
+</html>

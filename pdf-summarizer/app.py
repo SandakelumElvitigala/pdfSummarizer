@@ -17,6 +17,9 @@ from reportlab.pdfgen import canvas
 from fastapi.responses import FileResponse
 import concurrent.futures
 
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.styles import ParagraphStyle
@@ -30,6 +33,7 @@ from reportlab.platypus import PageBreak
 from reportlab.platypus import Frame, PageTemplate
 from markdown2 import markdown
 from bs4 import BeautifulSoup
+from fastapi.responses import RedirectResponse
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -50,6 +54,14 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
 )
+
+# Mount static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Add a redirect from root to the index.html
+@app.get("/")
+async def read_root():
+    return RedirectResponse(url="/static/index.html")
 
 # === Pydantic models ===
 class SummaryRequest(BaseModel):
